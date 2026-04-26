@@ -18,7 +18,6 @@
  */
 package cc.polarastrum.aiyatsbus.impl.registration.v12104_nms
 
-import cc.polarastrum.aiyatsbus.core.Aiyatsbus
 import cc.polarastrum.aiyatsbus.core.AiyatsbusEnchantment
 import cc.polarastrum.aiyatsbus.core.AiyatsbusEnchantmentBase
 import cc.polarastrum.aiyatsbus.core.AiyatsbusEnchantmentManager
@@ -27,6 +26,7 @@ import cc.polarastrum.aiyatsbus.core.registration.modern.ModernEnchantmentRegist
 import cc.polarastrum.aiyatsbus.impl.registration.v12104_paper.EnchantmentHelper
 import io.papermc.paper.registry.entry.RegistryTypeMapper
 import io.papermc.paper.registry.legacy.DelayedRegistry
+import net.kyori.adventure.key.Key
 import net.minecraft.core.*
 import net.minecraft.core.component.DataComponentMap
 import net.minecraft.core.registries.Registries
@@ -52,7 +52,6 @@ import taboolib.module.chat.component
 import java.lang.reflect.Modifier
 import java.util.*
 import java.util.function.BiFunction
-import javax.annotation.Nullable
 import kotlin.collections.HashMap
 
 /**
@@ -186,8 +185,10 @@ class DefaultModernEnchantmentRegisterer : ModernEnchantmentRegisterer {
         // Clear the enchantment cache
         cache.set(bukkitRegistry, mutableMapOf<NamespacedKey, Enchantment>())
 
-        if (enchantmentRegistry.containsKey(CraftNamespacedKey.toMinecraft(enchant.enchantmentKey))) {
-            val nms = enchantmentRegistry[CraftNamespacedKey.toMinecraft(enchant.enchantmentKey)]
+        val minecraftEnchantKey = CraftNamespacedKey.toMinecraft(enchant.enchantmentKey)
+
+        if (enchantmentRegistry.containsKey(minecraftEnchantKey)) {
+            val nms = enchantmentRegistry[minecraftEnchantKey]
 
             if (nms.isPresent) {
                 return (if (enchant.alternativeData.isVanilla) {
@@ -206,7 +207,7 @@ class DefaultModernEnchantmentRegisterer : ModernEnchantmentRegisterer {
 
         IRegistry.register(
             enchantmentRegistry,
-            MinecraftKey.withDefaultNamespace(enchant.id),
+            minecraftEnchantKey,
             vanillaEnchantment
         )
 
@@ -218,7 +219,8 @@ class DefaultModernEnchantmentRegisterer : ModernEnchantmentRegisterer {
     }
 
     private fun vanillaEnchantment(enchant: AiyatsbusEnchantment): NMSEnchantment {
-        val supportedItems = createItemsSet("enchant_supported", enchant.id, enchant.targets.flatMap { it.types })
+        // 通过 Tag 来控制附魔可应用的物品
+        val supportedItems = createItemsSet("enchant_supported", enchant.enchantmentKey, enchant.targets.flatMap { it.types })
 
         val enchantment = NMSEnchantment.enchantment(
             NMSEnchantment.definition(
@@ -243,10 +245,14 @@ class DefaultModernEnchantmentRegisterer : ModernEnchantmentRegisterer {
     @Suppress("UNCHECKED_CAST")
     private fun createItemsSet(
         prefix: String,
-        enchantId: String,
+        enchantKey: Key,
         materials: Collection<Material>
     ): HolderSet.Named<Item> {
-        val customKey = TagKey.create(itemRegistry.key(), MinecraftKey.withDefaultNamespace("$prefix/$enchantId"))
+        // TagKey 的命名空间为附魔的命名空间
+        val customKey = TagKey.create(
+            itemRegistry.key(),
+            MinecraftKey.fromNamespaceAndPath(enchantKey.namespace(), "$prefix/${enchantKey.value()}")
+        )
         val holders = arrayListOf<Holder<Item>>()
 
         materials.forEach { material ->

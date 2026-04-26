@@ -35,7 +35,7 @@ class NMSJ21Impl : NMSJ21() {
         return (item as CraftItemStack).handle[DataComponents.REPAIR_COST] ?: 0
     }
 
-    override fun setRepairCost(item: ItemStack, cost: Int) : ItemStack {
+    override fun setRepairCost(item: ItemStack, cost: Int): ItemStack {
         return item.apply {
             (this as CraftItemStack).handle[DataComponents.REPAIR_COST] = cost
         }
@@ -63,19 +63,34 @@ class NMSJ21Impl : NMSJ21() {
         return (nmsItem as NMSItemStack).hurtAndBreak(amount, (entity as CraftLivingEntity).handle, null)
     }
 
-    private fun resourceLocationGetPath(resourceLocation: Any): String {
-        if (versionId > 12110) {
-            return dynamic(
+    private fun resourceLocationGetMinimizeString(resourceLocation: Any): String {
+        val namespace: String = if (versionId > 12110) {
+            dynamic(
+                DynamicOpcode.INVOKEVIRTUAL,
+                "net.minecraft.resources.Identifier#getNamespace()java.lang.String;",
+                resourceLocation
+            ) as String
+        } else {
+            dynamic(
+                DynamicOpcode.INVOKEVIRTUAL,
+                "net.minecraft.resources.ResourceLocation#getNamespace()java.lang.String;",
+                resourceLocation
+            ) as String
+        }
+        val path = if (versionId > 12110) {
+            dynamic(
                 DynamicOpcode.INVOKEVIRTUAL,
                 "net.minecraft.resources.Identifier#getPath()java.lang.String;",
                 resourceLocation
             ) as String
+        } else {
+            dynamic(
+                DynamicOpcode.INVOKEVIRTUAL,
+                "net.minecraft.resources.ResourceLocation#getPath()java.lang.String;",
+                resourceLocation
+            ) as String
         }
-        return dynamic(
-            DynamicOpcode.INVOKEVIRTUAL,
-            "net.minecraft.resources.ResourceLocation#getPath()java.lang.String;",
-            resourceLocation
-        ) as String
+        return if (namespace == "minecraft") path else "$namespace:$path"
     }
 
     private fun nmsEnchNamespacedKey(resourceKey: ResourceKey<*>): Any {
@@ -103,7 +118,7 @@ class NMSJ21Impl : NMSJ21() {
         val map = Maps.newHashMapWithExpectedSize<AiyatsbusEnchantment, Int>(entries.size)
         for (entry in entries) {
             map[aiyatsbusEt(
-                resourceLocationGetPath(nmsEnchNamespacedKey(entry.key.unwrapKey().get()))
+                resourceLocationGetMinimizeString(nmsEnchNamespacedKey(entry.key.unwrapKey().get()))
             )!!] = entry.value
         }
         return map
@@ -119,7 +134,7 @@ class NMSJ21Impl : NMSJ21() {
         val array = Array<Array<Any>>(entries.size) { arrayOf() }
         entries.forEachIndexed { i, entry ->
             array[i] = arrayOf(aiyatsbusEt(
-                resourceLocationGetPath(nmsEnchNamespacedKey(entry.key.unwrapKey().get()))
+                resourceLocationGetMinimizeString(nmsEnchNamespacedKey(entry.key.unwrapKey().get()))
             )!!, entry.value)
         }
         return array

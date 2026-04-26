@@ -132,7 +132,7 @@ class DefaultAiyatsbusEnchantmentManager : AiyatsbusEnchantmentManager {
         val relativePath = file.path.substring(file.path.indexOf("enchants" + File.separator), file.path.length)
         val config = YamlUpdater.loadFromFile(relativePath, AiyatsbusSettings.enableUpdater, AiyatsbusSettings.updateContents)
         val id = config["basic.id"].toString()
-        val key = NamespacedKey.minecraft(id)
+        val key = NamespacedKey.fromString(id)!!
 
         val enchant = InternalAiyatsbusEnchantment(id, file, config)
         if (!enchant.dependencies.checkAvailable()) return

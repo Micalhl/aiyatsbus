@@ -32,6 +32,7 @@ import net.minecraft.core.IRegistryCustom
 import net.minecraft.core.RegistryMaterials
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.core.registries.Registries
+import net.minecraft.resources.MinecraftKey
 import net.minecraft.server.MinecraftServer
 import net.minecraft.world.item.enchantment.Enchantments
 import org.bukkit.Bukkit
@@ -123,19 +124,25 @@ class DefaultModernEnchantmentRegisterer : ModernEnchantmentRegisterer {
     }
 
     override fun register(enchant: AiyatsbusEnchantmentBase): Enchantment {
-        if (BuiltInRegistries.ENCHANTMENT.containsKey(CraftNamespacedKey.toMinecraft(enchant.enchantmentKey))) {
-            val nms = BuiltInRegistries.ENCHANTMENT[CraftNamespacedKey.toMinecraft(enchant.enchantmentKey)]
+        val minecraftEnchantKey = CraftNamespacedKey.toMinecraft(enchant.enchantmentKey)
+
+        if (BuiltInRegistries.ENCHANTMENT.containsKey(minecraftEnchantKey)) {
+            val nms = BuiltInRegistries.ENCHANTMENT[minecraftEnchantKey]
             if (nms != null) {
-                 return if (enchant.alternativeData.isVanilla) {
-                     VanillaCraftEnchantment(enchant, nms)
-                 } else {
-                     AiyatsbusCraftEnchantment(enchant, nms)
-                 }
+                return if (enchant.alternativeData.isVanilla) {
+                    VanillaCraftEnchantment(enchant, nms)
+                } else {
+                    AiyatsbusCraftEnchantment(enchant, nms)
+                }
             } else {
                 throw IllegalStateException("Enchantment ${enchant.id} wasn't registered")
             }
         }
-        IRegistry.register(BuiltInRegistries.ENCHANTMENT, enchant.id, VanillaAiyatsbusEnchantment(enchant.id))
+        IRegistry.register(
+            BuiltInRegistries.ENCHANTMENT,
+            minecraftEnchantKey,
+            VanillaAiyatsbusEnchantment(enchant.id)
+        )
         return register(enchant)
     }
 
